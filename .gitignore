@@ -1,0 +1,65 @@
+# Prerequisites
+*.d
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+# Precompiled Headers
+*.gch
+*.pch
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+# Fortran module files
+*.mod
+*.smod
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+# Executables
+*.exe
+*.out
+*.app
+# Simulink code generation folders
+slprj/
+sccprj/
+# Simulink autosave extension
+*.autosave
+# Windows default autosave extension
+*.asv
+# build folder for automated making and testing
+/build/*
+!/build/Readme.md
+# PyCharm and CLion ide files
+*.idea/*
+*.pyc
+*__pycache__*
+
+# ROS stuff
+*.bag
+# Pickled Data files
+*inputs*.pckl
+
+# sphinx related content
+/docs/build/*
+/docs/source/software/software_imp/*
+docs/source/software_imp/*
+
+\.coverage
+
+# Logging folder
+/logs/*
+
+# Temporary LTPL files
+testing_tools/params/loc_traj_tmp.csv
+testing_tools/params/stored_graph.pckl
+
+params/guar_occ_area.json
+
+dist/
+
+trajectory_supervisor.egg-info/

@@ -1,0 +1,2 @@
+import trajectory_supervisor.supervisor_modules.supmod_friction.src.check_friction
+import trajectory_supervisor.supervisor_modules.supmod_friction.src.supmod_friction
