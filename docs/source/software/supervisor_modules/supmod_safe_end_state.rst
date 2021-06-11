@@ -10,7 +10,7 @@ Overview
 The module (*Figure 1*) consists of a single function block (all implemented in the main file). Further details are
 given in the following section.
 
-.. image:: ../../../figures/supmod_safe_end_state.png
+.. image:: ../../figures/supmod_safe_end_state.png
   :width: 600
   :alt: Figure Module Structure supmod_safe_end_state.py
 

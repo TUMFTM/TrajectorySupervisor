@@ -24,7 +24,8 @@ The repository is composed of different components. Each of them is contained in
 
 
 
-The trajectory supervisor folder holds the core functionality and hosts the following subfolders.
+The trajectory supervisor folder holds the core functionality and hosts the following subfolders. At the top level of
+this folder resides the '`supervisor.py`', which holds the core class of the online verification framework.
 
 +-------------------+--------------------------------------------------------------------------+
 | Folder            | Description                                                              |
@@ -32,10 +33,6 @@ The trajectory supervisor folder holds the core functionality and hosts the foll
 | helper_funcs      | This folder is a python module holding supporting methods used in one    |
 |                   |                                                                          |
 |                   | or multiple other functions.                                             |
-+-------------------+--------------------------------------------------------------------------+
-| supervisor        | This folder is a python module holding the core class and functions      |
-|                   |                                                                          |
-|                   | of the online verification code.                                         |
 +-------------------+--------------------------------------------------------------------------+
 | supervisor_modules| This folder holds modules used in the overall safety Supervisor.         |
 |                   |                                                                          |
@@ -53,7 +50,7 @@ executes the online verification framework.
 
 Framework
 =========
-.. image:: ../../figures/mod_structure.png
+.. image:: ../figures/mod_structure.png
   :width: 800
   :alt: Picture Module Structure
 
@@ -65,7 +62,7 @@ pipe the data from the scenarios directly to the Supervisor. The figure depicts 
 vehicle with corresponding Ethernet interfaces (ZMQ / UDP).
 
 The online verification is started via the main-script '`main_supervisor.py`'. This loads the data for relevant UDP &
-ZMQ interfaces (more on this later) and initializes the Supervisor class ('`class_supervisor.py`').
+ZMQ interfaces (more on this later) and initializes the Supervisor class ('`supervisor.py`').
 
 The Supervisor class sets up required class variables and Supervisor Modules (SupMod) upon
 initialization. The class method '`set_inputs()`' retrieves the latest data regarding ego-vehicle and

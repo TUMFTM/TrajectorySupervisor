@@ -10,7 +10,7 @@ Overview
 The module (*Figure 1*) consists of a a number of rules (all implemented in the main file). Further details are
 given in the following section.
 
-.. image:: ../../../figures/supmod_rules.png
+.. image:: ../../figures/supmod_rules.png
   :width: 600
   :alt: Figure Module Structure supmod_rules.py
 

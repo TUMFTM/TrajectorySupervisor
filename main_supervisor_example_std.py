@@ -160,12 +160,12 @@ if __name__ == "__main__":
     veh_params = json.loads(interface_param.get('GENERAL_SAFETY', 'veh_params'))
 
     # init Supervisor object
-    supervisor = trajectory_supervisor.supervisor.src.class_supervisor.Supervisor(module_enabled=module_enabled,
-                                                                                  supmod_config_path=supmod_config_path,
-                                                                                  logging_param=logging_param,
-                                                                                  veh_params=veh_params,
-                                                                                  zone_file_path=zone_file_path,
-                                                                                  use_mp=use_mp)
+    supervisor = trajectory_supervisor.supervisor.Supervisor(module_enabled=module_enabled,
+                                                             supmod_config_path=supmod_config_path,
+                                                             logging_param=logging_param,
+                                                             veh_params=veh_params,
+                                                             zone_file_path=zone_file_path,
+                                                             use_mp=use_mp)
 
     # fetch logger (initialized in Supervisor class)
     logger = logging.getLogger("supervisor_logger")

@@ -4,7 +4,7 @@ Basics
 
 Framework
 =========
-.. image:: ../../figures/mod_structure.png
+.. image:: ../figures/mod_structure.png
   :width: 800
   :alt: Picture Module Structure
 
@@ -12,10 +12,10 @@ Framework
 
 Main script
 ===========
-As stated in the :doc:`../../start/content/overview` online verification is started via the main script
+As stated in the :doc:`../start/overview` online verification is started via the main script
 '`main_supervisor.py`'. This loads the data for relevant UDP & ZMQ interfaces (more on this in the :doc:`config`
-documentation) and initializes the Supervisor class ('`class_supervisor.py`' - more details about the implementation in
-:doc:`../../software_imp/modules`).
+documentation) and initializes the Supervisor class ('`supervisor.py`' - more details about the implementation in
+:doc:`../trajectory_supervisor/modules`).
 
 Supervisor class
 ================
@@ -232,7 +232,7 @@ of today when executed without parameters. This is useful for example when setti
     A similar implementation is also possible for Linux systems.
 
 
-.. image:: ../../figures/log_visualization.png
+.. image:: ../figures/log_visualization.png
   :width: 800
   :alt: Picture log visualization windows
 

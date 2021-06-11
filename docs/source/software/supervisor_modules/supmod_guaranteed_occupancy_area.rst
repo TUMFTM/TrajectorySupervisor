@@ -16,7 +16,7 @@ The basic functionality of this module is based on the following building blocks
 
 The corresponding information flow scheme is visualized in *Figure 1*.
 
-.. image:: ../../../figures/supmod_guaranteed_occupation_area.png
+.. image:: ../../figures/supmod_guaranteed_occupation_area.png
   :width: 600
   :alt: Figure Module Structure supmod_guaranteed_occupancy_area.py
 
@@ -31,7 +31,7 @@ the individual variables over time.
 Pre-calculation of guaranteed occupation
 ----------------------------------------
 
-.. image:: ../../../figures/guaranteed_occupation_sample.png
+.. image:: ../../figures/guaranteed_occupation_sample.png
   :width: 600
   :alt: Example demonstrating the calculation of the guaranteed calculation set
 

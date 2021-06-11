@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Trajectory Supervisor Module Documentation
-======================================
+==========================================
 
 .. image:: /figures/Overview.png
   :width: 800
@@ -26,13 +26,31 @@ testing purposes (e.g. CI jobs) via stored scenario files.
    that you assess the overall safety of your project as a whole. By no means is this software a replacement for a valid
    safety-concept. See the license for more details.
 
+
+Contents
+========
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started:
 
-   start/main.rst
-   software/main.rst
-   software_imp/modules.rst
+   start/overview.rst
+   start/installation.rst
+   start/launching.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Software Explanation:
+
+   software/basics.rst
+   software/supmod_structure.rst
+   software/config.rst
+   software/supmod_doc.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Code Documentation:
+
+   trajectory_supervisor/modules.rst
 
 
 People Involved

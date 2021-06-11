@@ -4,7 +4,8 @@ Supervisor Module Structure
 
 Supervisor modules (SupMod) are called in the Supervisor class and each calculate an individual safety score (binary)
 for the current situation (trajectory set in context with the surrounding environment). Details about the embedding in
-Supervisor class and how the data is retrieved can be found in :doc:`basics`.
+Supervisor class and how the data is retrieved can be found in :doc:`basics`. All paths in the following are given in
+relation to the folder '`trajectory_supervisor`'.
 
 Each SupMod is situated in its own folder (subdirectory of '`/supervisor_modules`') and must host a python class located
 in a python file with the same name as the parent folder.
@@ -39,7 +40,7 @@ In order to integrate your module in the supervisor class, the following two hoo
     #. **Initialization of the SupMod**
 
        Your module should be initialized within the '`init_supmods()`'-function of the Supervisor class
-       ('`/supervisor/src/class_supervisor.py`'). Therefore, add your module initialization in the following style:
+       ('`/supervisor.py`'). Therefore, add your module initialization in the following style:
 
        .. code-block:: python
 
@@ -94,7 +95,7 @@ should be done in two places:
        parameters, author, date). In order to allow the sphinx to auto-generate the documentation of the code, stick to
        the exact format given in the dummy module.
 
-       The auto-generated documentation will appear here: :doc:`../../software_imp/modules`.
+       The auto-generated documentation will appear here: :doc:`../trajectory_supervisor/modules`.
 
     #. In the documentation-files
 

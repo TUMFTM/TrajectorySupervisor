@@ -13,20 +13,16 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-sys.path.append(os.path.abspath('./helper_funcs'))
-sys.path.append(os.path.abspath('./supervisor'))
-sys.path.append(os.path.abspath('./supervisor_modules'))
-sys.path.append(os.path.abspath('./testing_tools'))
-sys.path.append(os.path.abspath('./visualization'))
+sys.path.append(os.path.abspath('./trajectory_supervisor'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Safety Assessment'
-copyright = '2020, Tim Stahl'
+project = 'Trajectory Supervisor'
+copyright = '2021, Tim Stahl'
 author = 'Tim Stahl'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.1.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,8 +32,11 @@ release = '0.0.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx_automodapi.automodapi',
-    'sphinxcontrib.apidoc'
+    'sphinx_rtd_theme',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages'
 ]
 
 autoclass_content = 'both'
@@ -65,12 +64,5 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
-
-# -- Build code documentation ------------------------------------------------
-apidoc_module_dir = '../../'
-apidoc_output_dir = 'software_imp'
-apidoc_excluded_paths = ['*main_supervisor*']
-apidoc_extra_args = ['-H', 'Code Documentation']
-apidoc_separate_modules = True
 
 # EOF

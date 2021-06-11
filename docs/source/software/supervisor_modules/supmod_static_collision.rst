@@ -10,7 +10,7 @@ Overview
 The module (*Figure 1*) consists of two alternative function blocks (split into separate files), each handling one
 map representation. Further details on each of these two are given in the following subsections.
 
-.. image:: ../../../figures/supmod_static_collision.png
+.. image:: ../../figures/supmod_static_collision.png
   :width: 600
   :alt: Figure Module Structure supmod_static_collision.py
 
@@ -44,7 +44,7 @@ have to be identified. For this purpose, ray-tracing is used to detect all passe
 in *Figure 2*. Here, all cells crossed by the trajectory (red) are identified by the algorithm. Once a crossed cell is
 occupied by the bound (black), a collision is detected (yellow cell).
 
-.. image:: ../../../figures/supmod_static_map_raytracing.png
+.. image:: ../../figures/supmod_static_map_raytracing.png
   :width: 400
   :alt: Visualization of the ray-tracing result with a detected collision.
 

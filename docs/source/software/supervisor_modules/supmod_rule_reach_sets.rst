@@ -19,7 +19,7 @@ The basic functionality of this module is based on the following building blocks
 
 The listed key steps are sketched in *Figure 1*.
 
-.. image:: ../../../figures/rule_based_set_steps.png
+.. image:: ../../figures/rule_based_set_steps.png
   :width: 600
   :alt: Figure key steps in supmod_rule_reach_sets.py
 
@@ -28,7 +28,7 @@ The listed key steps are sketched in *Figure 1*.
 
 The corresponding information flow scheme is visualized in *Figure 2*.
 
-.. image:: ../../../figures/supmod_rule_reach_sets.png
+.. image:: ../../figures/supmod_rule_reach_sets.png
   :width: 600
   :alt: Figure Module Structure supmod_rule_reach_sets.py
 

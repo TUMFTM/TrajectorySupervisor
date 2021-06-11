@@ -14,4 +14,4 @@ online verification framework.
 
 
 Further details about the actual implementation and the purpose of individual functions can be found in the
-:doc:`../../software_imp/modules`.
+:doc:`../trajectory_supervisor/modules`.

@@ -12,7 +12,7 @@ Since the architecture for this process would be too simple, the following frame
 Further added modules would benefit from a documentation text accompanied with a framework visualization in
 a similar style to *Figure 1*.
 
-.. image:: ../../../figures/supmod_dummy.png
+.. image:: ../../figures/supmod_dummy.png
   :width: 600
   :alt: Figure Module Structure supmod_dummy.py
 

@@ -10,7 +10,7 @@ Overview
 The module (*Figure 1*) consists of several plausibility checks executed on the provided trajectory to verify the
 integrity of the data. Further details on each of these checks are given in the following subsections.
 
-.. image:: ../../../figures/supmod_integrity.png
+.. image:: ../../figures/supmod_integrity.png
   :width: 600
   :alt: Figure Module Structure supmod_integrity.py
 

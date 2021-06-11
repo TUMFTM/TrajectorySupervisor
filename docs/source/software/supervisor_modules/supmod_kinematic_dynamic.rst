@@ -10,7 +10,7 @@ Overview
 The module (*Figure 1*) consists of two function blocks (all implemented in the main file). Further details are
 given in the following sections.
 
-.. image:: ../../../figures/supmod_kinematic_dynamic.png
+.. image:: ../../figures/supmod_kinematic_dynamic.png
   :width: 600
   :alt: Figure Module Structure supmod_kinematic_dynamic.py
 
