@@ -65,4 +65,25 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
+
+def run_apidoc(_):
+    from sphinx.ext.apidoc import main
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+    # specify path where the source files should be placed
+    source_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "trajectory_supervisor")
+
+    # specify path of the module to be documented
+    module_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "..", "trajectory_supervisor")
+
+    # call apidoc main
+    main(['-e', '-o', source_dir, module_dir, '--force'])
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
+
+
 # EOF
