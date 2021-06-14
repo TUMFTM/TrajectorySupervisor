@@ -31,6 +31,7 @@ functions have to be called in an iterative manner:
   - alternative: '`process_data_simple()`' - calculate a safety score but do only return safety scores
 
 - '`get_safe_trajectory()`' - return a safe trajectory candidate based on the preceding safety rating
+- '`get_fired_modules()`' - return list of strings for the modules fired in the preceding processing step
 - '`log()`' - log information generated in respective iteration to file
 
 Details about these functions are given below.

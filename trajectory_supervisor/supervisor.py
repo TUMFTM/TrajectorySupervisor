@@ -96,6 +96,7 @@ class Supervisor(object):
         self.__valid_dyn = None
         self.__valid_stat = None
         self.__param_dict = None
+        self.__fired_modules = []
 
         self.__zone_file_path = zone_file_path
         self.__module_enabled = module_enabled
@@ -468,6 +469,7 @@ class Supervisor(object):
         mod_dict_queue_in.close()
 
         # extract results from queue
+        self.__fired_modules = []
         self.__param_dict = dict()
         while pending_results != 0 or not mp_queue_results.empty():
             msg = mp_queue_results.get(timeout=0.1)
@@ -481,6 +483,7 @@ class Supervisor(object):
                 del msg['params_dict']["mod_calctime"]
 
             self.__param_dict.update(msg['params_dict'])
+            self.__fired_modules.extend(msg['fired_modules'])
 
         # extract calc-times
         for module in self.__param_dict['mod_calctime'].keys():
@@ -600,6 +603,15 @@ class Supervisor(object):
 
         return self.__safe_emerg_traj
 
+    def get_fired_modules(self) -> list:
+        """
+        Return a list of strings for the modules fired in the preceding processing step.
+
+        :return:
+        """
+
+        return self.__fired_modules
+
     def log(self,
             traj_perf_ref: np.ndarray = None,
             traj_em_ref: np.ndarray = None,
@@ -705,7 +717,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
             # append to list of fired modules if unsafe
             if not valid_dummy:
-                return_dict['fired_modules'].append('static_dummy')
+                return_dict['fired_modules'].append('static_dummy__' + traj_type)
 
         else:
             mod_dict.pop('dummy', None)
@@ -726,7 +738,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
             # append to list of fired modules if unsafe
             if not valid_rss:
-                return_dict['fired_modules'].append('dynamic_RSS')
+                return_dict['fired_modules'].append('dynamic_RSS__' + traj_type)
         else:
             mod_dict.pop('RSS', None)
             valid_rss = True
@@ -743,7 +755,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
             # append to list of fired modules if unsafe
             if not valid_gu_occ:
-                return_dict['fired_modules'].append('dynamic_guar_occupation')
+                return_dict['fired_modules'].append('dynamic_guar_occupation__' + traj_type)
         else:
             mod_dict.pop('dynamic_guar_occupation', None)
             valid_gu_occ = True
@@ -760,7 +772,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
             # append to list of fired modules if unsafe
             if not valid_rule_rs:
-                return_dict['fired_modules'].append('dynamic_rule_reach_sets')
+                return_dict['fired_modules'].append('dynamic_rule_reach_sets__' + traj_type)
         else:
             mod_dict.pop('rule_reach_set', None)
             valid_rule_rs = True
@@ -786,7 +798,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_static_col:
-            return_dict['fired_modules'].append('static_collision_check')
+            return_dict['fired_modules'].append('static_collision_check__' + traj_type)
     else:
         mod_dict.pop('static_collision_check', None)
         valid_static_col = True
@@ -802,7 +814,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_friction:
-            return_dict['fired_modules'].append('static_friction_ellipse')
+            return_dict['fired_modules'].append('static_friction_ellipse__' + traj_type)
     else:
         mod_dict.pop('static_friction_ellipse', None)
         valid_friction = True
@@ -818,7 +830,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_kin_dyn:
-            return_dict['fired_modules'].append('static_kinematic_dynamic')
+            return_dict['fired_modules'].append('static_kinematic_dynamic__' + traj_type)
     else:
         mod_dict.pop('static_kinematic_dynamic', None)
         valid_kin_dyn = True
@@ -834,7 +846,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_safe_end_state:
-            return_dict['fired_modules'].append('static_safe_end_state')
+            return_dict['fired_modules'].append('static_safe_end_state__' + traj_type)
 
     else:
         mod_dict.pop('static_safe_end_state', None)
@@ -851,7 +863,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_rules:
-            return_dict['fired_modules'].append('static_rules')
+            return_dict['fired_modules'].append('static_rules__' + traj_type)
 
     else:
         mod_dict.pop('static_rules', None)
@@ -867,7 +879,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
         # append to list of fired modules if unsafe
         if not valid_integrity:
-            return_dict['fired_modules'].append('static_integrity')
+            return_dict['fired_modules'].append('static_integrity__' + traj_type)
 
     else:
         mod_dict.pop('static_integrity', None)
