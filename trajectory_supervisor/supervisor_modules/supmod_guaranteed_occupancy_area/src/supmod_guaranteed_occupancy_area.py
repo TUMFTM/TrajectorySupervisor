@@ -87,7 +87,7 @@ class SupModGuaranteedOccupancyArea(object):
         calculated_md5 = md5(file_dict['supmod_config'])
 
         # load occupation map, if existing
-        if os.path.isfile(file_dict['occupation_map']):
+        if file_dict['occupation_map'] is not None and os.path.isfile(file_dict['occupation_map']):
             with open(file_dict['occupation_map'], 'r') as f:
                 self.__occupation_maps = json.load(f)
 

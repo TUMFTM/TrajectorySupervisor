@@ -106,10 +106,10 @@ def guar_occ_calc(t_max: float,
         x_rr = r_set_x - 0.5 * veh_length * np.cos(phi_set) - 0.5 * veh_width * np.sin(phi_set)
         y_rr = r_set_y - 0.5 * veh_length * np.sin(phi_set) + 0.5 * veh_width * np.cos(phi_set)
 
-        if export_path is not None:
-            # generate sub dict for chosen velocity
-            export_dict[v0] = dict()
-        else:
+        # generate sub dict for chosen velocity
+        export_dict[v0] = dict()
+
+        if visualize:
             # generate sub dict for chosen velocity
             plot_dict[v0] = dict()
 
@@ -190,14 +190,13 @@ def guar_occ_calc(t_max: float,
                 intersection_coords = (list(x), list(y))
             except AttributeError:
                 # brake when no intersection was found
-                if export_path is not None:
+                if not visualize:
                     break
 
             # -- SAVE OCCUPATION AREA or STORE ADVANCED INFO FOR PLOT --------------------------------------------------
-            if export_path is not None:
-                export_dict[v0][t] = intersection_coords
+            export_dict[v0][t] = intersection_coords
 
-            else:
+            if visualize:
                 plot_dict[v0][t] = dict()
 
                 x1, y1 = rect_biggest_phi.exterior.xy           # right turn - most extreme turn
