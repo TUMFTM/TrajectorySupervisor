@@ -52,6 +52,9 @@ the corresponding time step (dark blue, *Figure 2*) can be determined for each c
     `visualization/src/visualize_interactive_reach_occ.py` can be executed. This script allows to define any possible
     state with sliders and to view the resulting sets (see *Figure 2*).
 
+    However, if this repository was modified and the localgg and ax_mac_machines-files are in a different location,
+    the paths must be adjusted in this script.
+
 Ego-occupation
 --------------
 Since the future location of the ego vehicle is defined by the planned trajectory, its occupancy can be determined by

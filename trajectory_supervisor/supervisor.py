@@ -45,6 +45,7 @@ class Supervisor(object):
                  veh_params: dict,
                  logging_param: dict = None,
                  zone_file_path: str = None,
+                 occ_map_path: str = None,
                  use_mp: bool = False) -> None:
         """
         :param module_enabled:       dict of dicts specifying which modules of the supervisor are enabled
@@ -70,6 +71,8 @@ class Supervisor(object):
                                                           set zero to disable [in m2*kg/m3]
                                       m_veh -             vehicle mass [in kg]
         :param zone_file_path:       (optional) path pointing to a Roborace zone spec. (e.g. for reach set reduct.)
+        :param occ_map_path:         (optional) path pointing to location where occupation map can be stored to avoid
+                                     offline calculation on every launch
         :param use_mp:               (optional) if set to true and executed on a Linux machine, multiprocessing is used
 
         """
@@ -104,6 +107,7 @@ class Supervisor(object):
 
         # read frequently used parameters from configuration file
         self.__supmod_config_path = supmod_config_path
+        self.__occ_map_path = occ_map_path
         supmod_configparser = configparser.ConfigParser()
         if not supmod_configparser.read(supmod_config_path):
             raise ValueError('Specified config file does not exist or is empty!')
@@ -300,7 +304,8 @@ class Supervisor(object):
                 SupModGuaranteedOccupancyArea(localgg=self.__localgg,
                                               ax_max_machines=self.__ax_max_machines,
                                               supmod_config_path=self.__supmod_config_path,
-                                              veh_params=self.__veh_params)
+                                              veh_params=self.__veh_params,
+                                              occupation_map_path=self.__occ_map_path)
 
         # rule-based reachable sets
         if any(self.__module_enabled['dynamic_rule_reach_sets'].values()):

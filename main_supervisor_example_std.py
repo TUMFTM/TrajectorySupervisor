@@ -126,6 +126,9 @@ if __name__ == "__main__":
     if not os.path.isfile(supmod_config_path):
         supmod_config_path = toppath + "/params/supmod_config.ini"
 
+    # path to offline generated guaranteed occupation map file (created on first call, instead of calculating each call)
+    occ_map_path = toppath + "/params/guar_occ_area.json"
+
     # load interface config file
     interface_param = configparser.ConfigParser()
     if not interface_param.read(toppath + "/params/interface_config_" + target + ".ini"):
@@ -165,6 +168,7 @@ if __name__ == "__main__":
                                                              logging_param=logging_param,
                                                              veh_params=veh_params,
                                                              zone_file_path=zone_file_path,
+                                                             occ_map_path=occ_map_path,
                                                              use_mp=use_mp)
 
     # fetch logger (initialized in Supervisor class)

@@ -31,10 +31,11 @@ def guar_occ_calc(t_max: float,
                   veh_width: float = 2.0,
                   turn_rad: float = 11.0,
                   md5_key: str = '',
-                  export_path: str = None) -> None:
+                  export_path: str = None,
+                  visualize: bool = False) -> dict:
 
     """
-    This function calculates and exports (to file) the guaranteed occupation area for a given gg-diagram.
+    This function calculates and exports (to file or return val) the guaranteed occupation area for a given gg-diagram.
 
     :param t_max:       time-horizon the state set is computed for [in s]
     :param d_t:         temporal step-size in rendered set [in s]
@@ -49,7 +50,9 @@ def guar_occ_calc(t_max: float,
     :param turn_rad:    turning radius of vehicle [in m]
     :param md5_key:     md5 key to be stored with the maps (e.g. md5-sum of parameter file)
     :param export_path: absolute path pointing to the location where the occupation set should be stored,
-                        if set to 'None' an interactive visualization is shown
+                        if set to 'None' the map is not stored and only returned
+    :param visualize:   if set to 'True' an interactive visualization of the calculated occupation set is shown
+    :returns:           export_dict hosting guaranteed occupation area for given gg-diagram
 
     :Authors:
         * Maximilian Bayerlein
@@ -242,7 +245,7 @@ def guar_occ_calc(t_max: float,
             # store as json formatted file
             json.dump(export_dict, fp)
 
-    else:
+    if visualize:
         # setup plot
         fig, ax = plt.subplots()
         fig.canvas.set_window_title("Occupancy Analysis")
@@ -266,7 +269,7 @@ def guar_occ_calc(t_max: float,
 
         plt.show()
 
-    return
+    return export_dict
 
 
 def change_plot(fig, ax, vel_slider, t_slider, plot_dict, _):

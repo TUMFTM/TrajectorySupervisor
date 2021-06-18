@@ -31,8 +31,9 @@ class SupModGuaranteedOccupancyArea(object):
     def __init__(self,
                  localgg: np.ndarray,
                  ax_max_machines: np.ndarray,
+                 veh_params: dict,
                  supmod_config_path: str,
-                 veh_params: dict) -> None:
+                 occupation_map_path: str = None) -> None:
         """
         Init the guaranteed occupancy SupMod.
 
@@ -40,11 +41,13 @@ class SupModGuaranteedOccupancyArea(object):
         :param ax_max_machines:     long. acceleration limits by the electrical motors, columns [vx, ax_max_machines];
                                     velocity in m/s, accelerations in m/s2. They should be handed in without considering
                                     drag resistance, i.e. simply by calculating F_x_drivetrain / m_veh
-        :param supmod_config_path:  path pointing to the config file hosting relevant parameters
         :param veh_params:          dict of vehicle parameters; must hold the following keys:
                                       veh_width -     width of the ego-vehicle [in m]
                                       veh_length -    length of the ego-vehicle [in m]
                                       turn_rad -      turning radius of vehicle [in m]
+        :param supmod_config_path:  path pointing to the config file hosting relevant parameters
+        :param occupation_map_path: (optional) path pointing to location where occupation map can be stored to avoid
+                                    offline calculation on every launch
 
         """
 
@@ -53,10 +56,8 @@ class SupModGuaranteedOccupancyArea(object):
             raise RuntimeError("ax_max_machines must consist of the two columns [vx, ax_max_machines]!")
 
         # top level path (module directory)
-        toppath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.realpath(__file__))))))
         file_dict = {'supmod_config': supmod_config_path,
-                     'occupation_map': toppath + '/params/guar_occ_area.json'}
+                     'occupation_map': occupation_map_path}
 
         # set vehicle parameters
         self.__veh_width = veh_params['veh_width']
@@ -98,29 +99,26 @@ class SupModGuaranteedOccupancyArea(object):
                                                         "recalculation.")
 
             # calculate new maps
-            trajectory_supervisor.supervisor_modules.supmod_guaranteed_occupancy_area.src.guar_occ_calc.\
-                guar_occ_calc(t_max=self.__t_max_occ,
-                              d_t=self.__d_t_occ,
-                              v_max=v_max_occ,
-                              d_v=d_v_occ,
-                              localgg=localgg,
-                              ax_max_mach=ax_max_machines,
-                              nmb_states=nmb_states_occ,
-                              veh_length=self.__veh_length,
-                              veh_width=self.__veh_width,
-                              turn_rad=self.__veh_turn_rad,
-                              md5_key=calculated_md5,
-                              export_path=file_dict['occupation_map'])
-
-            # load new occupation map file
-            with open(file_dict['occupation_map'], 'r') as f:
-                self.__occupation_maps = json.load(f)
+            self.__occupation_maps = trajectory_supervisor.supervisor_modules.supmod_guaranteed_occupancy_area.src.\
+                guar_occ_calc.guar_occ_calc(t_max=self.__t_max_occ,
+                                            d_t=self.__d_t_occ,
+                                            v_max=v_max_occ,
+                                            d_v=d_v_occ,
+                                            localgg=localgg,
+                                            ax_max_mach=ax_max_machines,
+                                            nmb_states=nmb_states_occ,
+                                            veh_length=self.__veh_length,
+                                            veh_width=self.__veh_width,
+                                            turn_rad=self.__veh_turn_rad,
+                                            md5_key=calculated_md5,
+                                            export_path=file_dict['occupation_map'])
 
             # notify user on completion
             logging.getLogger("supervisor_logger").info("Occupation map creation succeeded.")
 
-        # remove MD5 key
-        del self.__occupation_maps['md5_key']
+        # remove MD5 key, if present
+        if 'md5_key' in self.__occupation_maps:
+            del self.__occupation_maps['md5_key']
 
     # ------------------------------------------------------------------------------------------------------------------
     # DESTRUCTOR -------------------------------------------------------------------------------------------------------
