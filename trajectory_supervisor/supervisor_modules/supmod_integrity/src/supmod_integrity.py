@@ -170,6 +170,11 @@ class SupModIntegrity(object):
 
         # exclude first and last value in check, since previous and following conditions are not known
         ba = np.greater(np.abs(traj[f_l, 6][1:-1] - ax[1:]), self.__ax_err)
+
+        # all negative accelerations in regions with (end)velocity equal to zero allowed (due to standstill brake acc.
+        # and possible discretization issues, e.g. braking to zero with full acc. but the discrete distance is larger)
+        ba = np.where(traj[f_l, 5][2:] > 0.01, ba, False)
+
         if any(ba):
             i = int(np.argmax(ba)) + 1
             self.__log.warning("supmod_integrity | The calculated acceleration reference exceeded the spec. tolerance! "
