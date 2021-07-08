@@ -103,7 +103,7 @@ class Supervisor(object):
 
         self.__zone_file_path = zone_file_path
         self.__module_enabled = module_enabled
-        self.__use_mp = use_mp
+        self.__use_mp = use_mp and platform.system() == 'Linux'
 
         # read frequently used parameters from configuration file
         self.__supmod_config_path = supmod_config_path
@@ -427,68 +427,83 @@ class Supervisor(object):
         # - CALCULATE SCORE --------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
         tic = time.time()
-        mp_queue_results = multiprocessing.Queue()
-        mod_dict_queue_out = multiprocessing.Queue()
 
-        # add modules dict twice to queue
-        mod_dict_queue_in = multiprocessing.Queue()
-        mod_dict_queue_in.put(self.__mod_dict)
-        mod_dict_queue_in.put(self.__mod_dict)
+        self.__fired_modules = []
+        self.__param_dict = dict()
 
-        jobs = []
-        pending_results = 0
-        pending_mod_dicts = 0
-        for traj_type in ['perf', 'emerg']:
-            traj = self.__traj[traj_type]['traj']
+        # use parallel calculation, when enabled and not windows
+        # NOTE: windows does not support "fork" initialization and uses "spawn" which is slow
+        if self.__use_mp:
+            mp_queue_results = multiprocessing.Queue()
+            mod_dict_queue_out = multiprocessing.Queue()
 
-            # use parallel calculation, when enabled and not windows
-            # NOTE: windows does not support "fork" initialization and uses "spawn" which is slow
-            if platform.system() == 'Linux' and self.__use_mp:
-                # call trajectory clipping in parallel manner
-                p = multiprocessing.Process(target=safety_rating,
+            # add modules dict twice to queue
+            mod_dict_queue_in = multiprocessing.Queue()
+            mod_dict_queue_in.put(self.__mod_dict)
+            mod_dict_queue_in.put(self.__mod_dict)
+
+            jobs = []
+            pending_results = 0
+            pending_mod_dicts = 0
+            for traj_type in ['perf', 'emerg']:
+                traj = self.__traj[traj_type]['traj']
+
+                # call trajectory safety rating in parallel manner
+                p = multiprocessing.Process(target=safety_rating_mp_wrapper,
                                             args=(mod_dict_queue_in, self.__module_enabled, traj, self.__objects,
                                                   traj_type, mod_dict_queue_out, mp_queue_results))
                 jobs.append(p)
                 p.start()
-            else:
-                # call trajectory clipping
-                safety_rating(mod_dict_q_in=mod_dict_queue_in,
-                              mod_enabled=self.__module_enabled,
-                              traj=traj,
-                              objects_sync=self.__objects,
-                              traj_type=traj_type,
-                              mod_dict_q_out=mod_dict_queue_out,
-                              mp_queue=mp_queue_results)
 
-            pending_results += 1
-            pending_mod_dicts += 1
+                pending_results += 1
+                pending_mod_dicts += 1
 
-        # sync module dict (supervisor module classes)
-        while pending_mod_dicts != 0 or not mod_dict_queue_in.empty():
-            msg = mod_dict_queue_out.get(timeout=1.0)
+            # sync module dict (supervisor module classes)
+            while pending_mod_dicts != 0 or not mod_dict_queue_out.empty():
+                msg = mod_dict_queue_out.get(timeout=1.0)
+                self.__mod_dict.update(msg)
+                pending_mod_dicts -= 1
 
-            self.__mod_dict.update(msg)
+            mod_dict_queue_in.close()
+            mod_dict_queue_out.close()
 
-            pending_mod_dicts -= 1
+            # extract results from queue
+            while pending_results != 0 or not mp_queue_results.empty():
+                msg = mp_queue_results.get(timeout=0.1)
 
-        mod_dict_queue_in.close()
+                for traj_type in msg['traj_dict'].keys():
+                    self.__traj[traj_type].update(msg['traj_dict'][traj_type])
+                    pending_results -= 1
 
-        # extract results from queue
-        self.__fired_modules = []
-        self.__param_dict = dict()
-        while pending_results != 0 or not mp_queue_results.empty():
-            msg = mp_queue_results.get(timeout=0.1)
+                if "mod_calctime" in self.__param_dict and "mod_calctime" in msg['params_dict']:
+                    self.__param_dict['mod_calctime'].update(msg['params_dict']["mod_calctime"])
+                    del msg['params_dict']["mod_calctime"]
 
-            for traj_type in msg['traj_dict'].keys():
-                self.__traj[traj_type].update(msg['traj_dict'][traj_type])
-                pending_results -= 1
+                self.__param_dict.update(msg['params_dict'])
+                self.__fired_modules.extend(msg['fired_modules'])
 
-            if "mod_calctime" in self.__param_dict and "mod_calctime" in msg['params_dict']:
-                self.__param_dict['mod_calctime'].update(msg['params_dict']["mod_calctime"])
-                del msg['params_dict']["mod_calctime"]
+            mp_queue_results.close()
 
-            self.__param_dict.update(msg['params_dict'])
-            self.__fired_modules.extend(msg['fired_modules'])
+        else:
+            for traj_type in ['perf', 'emerg']:
+                traj = self.__traj[traj_type]['traj']
+
+                # call trajectory safety rating
+                result_dict = safety_rating(mod_dict=self.__mod_dict,
+                                            mod_enabled=self.__module_enabled,
+                                            traj=traj,
+                                            objects_sync=self.__objects,
+                                            traj_type=traj_type)
+
+                for traj_type_ in result_dict['traj_dict'].keys():
+                    self.__traj[traj_type_].update(result_dict['traj_dict'][traj_type_])
+
+                if "mod_calctime" in self.__param_dict and "mod_calctime" in result_dict['params_dict']:
+                    self.__param_dict['mod_calctime'].update(result_dict['params_dict']["mod_calctime"])
+                    del result_dict['params_dict']["mod_calctime"]
+
+                self.__param_dict.update(result_dict['params_dict'])
+                self.__fired_modules.extend(result_dict['fired_modules'])
 
         # extract calc-times
         for module in self.__param_dict['mod_calctime'].keys():
@@ -500,8 +515,6 @@ class Supervisor(object):
                 n = self.__mod_calctime[module + "_count"] - 1
                 self.__mod_calctime[module] = (self.__mod_calctime[module] * n
                                                + self.__param_dict['mod_calctime'][module]) / (n + 1)
-
-        mp_queue_results.close()
 
         # merge ratings of perf and emerg for log and return
         self.__valid_stat = self.__traj['perf']['valid_stat'] and self.__traj['emerg']['valid_stat']
@@ -670,17 +683,15 @@ def default(obj):
     raise TypeError('Not serializable (type: ' + str(type(obj)) + ')')
 
 
-def safety_rating(mod_dict_q_in: multiprocessing.Queue,
-                  mod_enabled: dict,
-                  traj: np.ndarray,
-                  objects_sync: dict,
-                  traj_type: str,
-                  mod_dict_q_out: multiprocessing.Queue,
-                  mp_queue: multiprocessing.Queue) -> None:
+def safety_rating_mp_wrapper(mod_dict_q_in: multiprocessing.Queue,
+                             mod_enabled: dict,
+                             traj: np.ndarray,
+                             objects_sync: dict,
+                             traj_type: str,
+                             mod_dict_q_out: multiprocessing.Queue,
+                             mp_queue: multiprocessing.Queue):
     """
-    This function handles the generation of safety score for a given trajectory. Therefore, all activated supervisor
-    modules for the trajectory type at hand ('`traj_type`') are called. The final safety rating is a conjunction of the
-    returned scores of all passed supervisor modules.
+    This function provides a multiprocessing wrapper for the safety_rating method, based on multiprocessing queues.
 
     :param mod_dict_q_in:   queue holding dictionary with initialized module classes (used for calculations)
     :param mod_enabled:     dictionary specifying whether a module is activated for the 'perf' and / or 'emerg' traj.
@@ -698,10 +709,59 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
 
     """
 
-    tic = time.time()
-
     # extract module dict from queue
     mod_dict = mod_dict_q_in.get()
+
+    # get rating
+    return_dict = safety_rating(mod_dict=mod_dict,
+                                mod_enabled=mod_enabled,
+                                traj=traj,
+                                objects_sync=objects_sync,
+                                traj_type=traj_type,
+                                pop_unused_mod=True)
+
+    # push dict to queue
+    mp_queue.put(return_dict)
+
+    # push modified mod_dict to queue
+    mod_dict_q_out.put(mod_dict)
+
+    # wait to ensure proper handling of queue
+    time.sleep(0.00001)
+
+
+def safety_rating(mod_dict: dict,
+                  mod_enabled: dict,
+                  traj: np.ndarray,
+                  objects_sync: dict,
+                  traj_type: str,
+                  pop_unused_mod: bool = False) -> dict:
+    """
+    This function handles the generation of safety score for a given trajectory. Therefore, all activated supervisor
+    modules for the trajectory type at hand ('`traj_type`') are called. The final safety rating is a conjunction of the
+    returned scores of all passed supervisor modules.
+
+    :param mod_dict:        dictionary with initialized module classes (used for calculations)
+    :param mod_enabled:     dictionary specifying whether a module is activated for the 'perf' and / or 'emerg' traj.
+    :param traj:            trajectory data with columns [s, x, y, heading, curv, vel, acc]
+    :param objects_sync:    synced object dictionary
+    :param traj_type:       string describing the trajectory type ('perf' or 'emerg')
+    :param pop_unused_mod:  remove unused modules from the "mod_dict"
+    :returns:
+        * **return_dict** - dictionary holding return values with the following (core) keys:
+                                * 'traj_dict':      trajectory with corresponding safety rating (subkey 'valid')
+                                * 'params_dict':    parameters returned for each SupMod (e.g. calculation time)
+                                * 'fired_modules':  list hosting string codes for all the modules that rated "unsafe"
+
+    :Authors:
+        * Tim Stahl <tim.stahl@tum.de>
+
+    :Created on:
+        30.03.2020
+
+    """
+
+    tic = time.time()
 
     # ----------------------------------------------------------------------------------------------------------
     # - CHECK DYNAMIC ENVIRONMENT (trajectory and objects must be present) -------------------------------------
@@ -725,7 +785,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
                 return_dict['fired_modules'].append('static_dummy__' + traj_type)
 
         else:
-            mod_dict.pop('dummy', None)
+            if pop_unused_mod:
+                mod_dict.pop('dummy', None)
             valid_dummy = True
 
         # - RSS module -------------------------------------------------------------------------------------------------
@@ -745,7 +806,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             if not valid_rss:
                 return_dict['fired_modules'].append('dynamic_RSS__' + traj_type)
         else:
-            mod_dict.pop('RSS', None)
+            if pop_unused_mod:
+                mod_dict.pop('RSS', None)
             valid_rss = True
 
         # -- guaranteed occupation -------------------------------------------------------------------------------------
@@ -762,7 +824,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             if not valid_gu_occ:
                 return_dict['fired_modules'].append('dynamic_guar_occupation__' + traj_type)
         else:
-            mod_dict.pop('dynamic_guar_occupation', None)
+            if pop_unused_mod:
+                mod_dict.pop('dynamic_guar_occupation', None)
             valid_gu_occ = True
 
         # -- rule-based reachable sets ---------------------------------------------------------------------------------
@@ -779,7 +842,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             if not valid_rule_rs:
                 return_dict['fired_modules'].append('dynamic_rule_reach_sets__' + traj_type)
         else:
-            mod_dict.pop('rule_reach_set', None)
+            if pop_unused_mod:
+                mod_dict.pop('rule_reach_set', None)
             valid_rule_rs = True
 
         # -- fuse score of all active dynamic env. assessment modules (add more via conjunction) -----------------------
@@ -805,7 +869,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
         if not valid_static_col:
             return_dict['fired_modules'].append('static_collision_check__' + traj_type)
     else:
-        mod_dict.pop('static_collision_check', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_collision_check', None)
         valid_static_col = True
 
     # -- friction / acceleration ---------------------------------------------------------------------------------------
@@ -821,7 +886,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
         if not valid_friction:
             return_dict['fired_modules'].append('static_friction_ellipse__' + traj_type)
     else:
-        mod_dict.pop('static_friction_ellipse', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_friction_ellipse', None)
         valid_friction = True
 
     # -- vehicle kinematics and dynamics -------------------------------------------------------------------------------
@@ -837,7 +903,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
         if not valid_kin_dyn:
             return_dict['fired_modules'].append('static_kinematic_dynamic__' + traj_type)
     else:
-        mod_dict.pop('static_kinematic_dynamic', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_kinematic_dynamic', None)
         valid_kin_dyn = True
 
     # -- safe end state ------------------------------------------------------------------------------------------------
@@ -854,7 +921,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             return_dict['fired_modules'].append('static_safe_end_state__' + traj_type)
 
     else:
-        mod_dict.pop('static_safe_end_state', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_safe_end_state', None)
         valid_safe_end_state = True
 
     # -- rules ---------------------------------------------------------------------------------------------------------
@@ -871,7 +939,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             return_dict['fired_modules'].append('static_rules__' + traj_type)
 
     else:
-        mod_dict.pop('static_rules', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_rules', None)
         valid_rules = True
 
     # -- integrity -----------------------------------------------------------------------------------------------------
@@ -887,7 +956,8 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
             return_dict['fired_modules'].append('static_integrity__' + traj_type)
 
     else:
-        mod_dict.pop('static_integrity', None)
+        if pop_unused_mod:
+            mod_dict.pop('static_integrity', None)
         valid_integrity = True
 
     # -- fuse score of all active static env. assessment modules (add more via conjunction) ----------------------------
@@ -904,14 +974,7 @@ def safety_rating(mod_dict_q_in: multiprocessing.Queue,
     return_dict['traj_dict'][traj_type]['time_safety'] = time.time()
     return_dict['traj_dict'][traj_type]['calc_time'] = time.time() - tic
 
-    # push dict to queue
-    mp_queue.put(return_dict)
-
-    # push modified mod_dict to queue
-    mod_dict_q_out.put(mod_dict)
-
-    # wait to ensure proper handling of queue
-    time.sleep(0.00001)
+    return return_dict
 
 
 # -- TESTING -----------------------------------------------------------------------------------------------------------
