@@ -163,7 +163,14 @@ def get_map_from_line(_file_path: str,
         else:
             _acc_limit_factor = 1.0
 
-    return _bound_l, _bound_r, _localgg, _ax_max_machines, _acc_limit_factor
+        if 'bound_l_add' in map_data.keys() and 'bound_r_add' in map_data.keys():
+            _bound_l_add = json.loads(map_data['bound_l_add'])
+            _bound_r_add = json.loads(map_data['bound_r_add'])
+        else:
+            _bound_l_add = None
+            _bound_r_add = None
+
+    return _bound_l, _bound_r, _localgg, _ax_max_machines, _acc_limit_factor, _bound_l_add, _bound_r_add
 
 
 class DebugHandler(object):
@@ -569,8 +576,9 @@ class DebugHandler(object):
             if self.__time_stamps_map[i] != self.__active_map_stamp:
                 self.__active_map_stamp = self.__time_stamps_map[i]
 
-                _bound_l, _bound_r, _localgg, _, _acc_limit_factor = get_map_from_line(_file_path=file_path_map,
-                                                                                       _line_num=max(i, 0))
+                _bound_l, _bound_r, _localgg, _, _acc_limit_factor, _bound_l_add, _bound_r_add = \
+                    get_map_from_line(_file_path=file_path_map,
+                                      _line_num=max(i, 0))
 
                 if self.__veh_params is not None and localgg is not None:
                     plot_handler.init_acc_plot(a_lat_max_tires=max(_localgg[:, 4]) * _acc_limit_factor,
@@ -579,6 +587,13 @@ class DebugHandler(object):
 
                 plot_handler.plot_map(bound_l=_bound_l,
                                       bound_r=_bound_r)
+
+                if _bound_l_add is not None and _bound_r_add is not None:
+                    for i, (_bound_l_cand, _bound_r_cand) in enumerate(zip(_bound_l_add, _bound_r_add)):
+                        plot_handler.plot_map(bound_l=np.array(_bound_l_cand),
+                                              bound_r=np.array(_bound_r_cand),
+                                              name=str(i))
+
                 self.__working = False
 
 
@@ -802,10 +817,18 @@ if __name__ == "__main__":
     plot_handler = PlotHandler.PlotHandler(plot_title="Safety Log Visualization")
 
     # plot initial map
-    bound_l, bound_r, localgg, _, acc_limit_factor = get_map_from_line(_file_path=file_path_map,
-                                                                       _line_num=0)
+    bound_l, bound_r, localgg, _, acc_limit_factor, bound_l_add, bound_r_add = \
+        get_map_from_line(_file_path=file_path_map,
+                          _line_num=0)
+
     plot_handler.plot_map(bound_l=bound_l,
                           bound_r=bound_r)
+
+    if bound_l_add is not None and bound_r_add is not None:
+        for i, (bound_l_cand, bound_r_cand) in enumerate(zip(bound_l_add, bound_r_add)):
+            plot_handler.plot_map(bound_l=np.array(bound_l_cand),
+                                  bound_r=np.array(bound_r_cand),
+                                  name=str(i))
 
     if veh_params is not None and localgg is not None:
         plot_handler.init_acc_plot(a_lat_max_tires=max(localgg[:, 4]) * acc_limit_factor,

@@ -169,19 +169,22 @@ class PlotHandler(object):
 
     def plot_map(self,
                  bound_l: np.ndarray,
-                 bound_r: np.ndarray) -> None:
+                 bound_r: np.ndarray,
+                 name: str = 'default') -> None:
         """
         Visualization of the map.
 
         :param bound_l:     coordinates of the left bound
         :param bound_r:     coordinates of the right bound
+        :param name:        string specifier for type to be plotted (if "default": all others will be deleted)
 
         """
 
-        # delete highlighted positions with handle
+        # update selected track handle (delete first), if "default", delete all
         for key in self.__track_hdl.keys():
-            self.__track_hdl[key].remove()
-            del self.__track_hdl[key]
+            if name == "default" or name in key:
+                self.__track_hdl[key].remove()
+                del self.__track_hdl[key]
 
         if bound_l is not None and bound_r is not None:
             # close path, if relevant
@@ -193,7 +196,7 @@ class PlotHandler(object):
             # track patch
             patch_xy = np.vstack((bound_l, np.flipud(bound_r)))
             track_ptch = ptch.Polygon(patch_xy, facecolor="black", alpha=0.2, zorder=1)
-            self.__track_hdl['patch'] = self.__main_ax.add_artist(track_ptch)
+            self.__track_hdl['patch_' + name] = self.__main_ax.add_artist(track_ptch)
 
             # connecting lines
             n_shared_el = int(min(bound_l.size / 2, bound_r.size / 2))
@@ -202,8 +205,8 @@ class PlotHandler(object):
                 for i in range(n_shared_el):
                     data_bound_lines[0].extend([bound_l[i, 0], bound_r[i, 0], None])
                     data_bound_lines[1].extend([bound_l[i, 1], bound_r[i, 1], None])
-            self.__track_hdl['normals'], = self.__main_ax.plot(data_bound_lines[0], data_bound_lines[1], '--',
-                                                               color=TUM_colors['TUM_grey_dark'], zorder=5)
+            self.__track_hdl['normals_' + name], = self.__main_ax.plot(data_bound_lines[0], data_bound_lines[1], '--',
+                                                                       color=TUM_colors['TUM_grey_dark'], zorder=5)
 
             # bound lines
             x = list(bound_l[:, 0])
@@ -212,7 +215,8 @@ class PlotHandler(object):
             y.append(None)
             x.extend(list(bound_r[:, 0]))
             y.extend(list(bound_r[:, 1]))
-            self.__track_hdl['bounds'], = self.__main_ax.plot(x, y, "k-", linewidth=1.4, label="Bounds", zorder=6)
+            self.__track_hdl['bounds_' + name], = self.__main_ax.plot(x, y, "k-", linewidth=1.4, label="Bounds",
+                                                                      zorder=6)
 
     def plot_vehicle(self,
                      pos: np.ndarray,

@@ -4,8 +4,7 @@ import shapely.geometry
 
 
 def check_collision_lanelet(ego_path: np.ndarray,
-                            bound_l: np.ndarray,
-                            bound_r: np.ndarray,
+                            track_shape: shapely.geometry.Polygon,
                             col_width: float,
                             veh_length: float) -> tuple:
     """
@@ -13,8 +12,7 @@ def check_collision_lanelet(ego_path: np.ndarray,
     vehicle width) along the ego-path is checked against the track bounds.
 
     :param ego_path:            path data of the ego vehicle with the following columns: [pos_x, pos_y, heading]
-    :param bound_l:             coordinates of the left bound (numpy array with columns x, y)
-    :param bound_r:             coordinates of the right bound (numpy array with columns x, y)
+    :param track_shape:         shapely object describing track
     :param col_width:           tracked width for collisions (with the trajectory lying in the center -> for minimal
                                 safety use vehicle width, for conservative safety use vehicle diagonal)
     :param veh_length:          length of vehicle in meters
@@ -40,26 +38,18 @@ def check_collision_lanelet(ego_path: np.ndarray,
                               ego_path[-1, :] + de2 * veh_length / max(2 * np.hypot(de2[0], de2[1]), 0.001)))
     ego_tube = shapely.geometry.LineString(ego_path_ext).buffer(col_width / 2)
 
-    # define shapely objects for bounds
-    bound_l_ls = shapely.geometry.LineString(bound_l)
-    bound_r_ls = shapely.geometry.LineString(bound_r)
+    # -- check for intersection / boundary collision --
+    bound_collision = not track_shape.contains(ego_tube)
 
-    # check for intersection
-    intersect_l = ego_tube.intersects(bound_l_ls)
-    intersect_r = ego_tube.intersects(bound_r_ls)
-
-    # if intersecting, raise warning and output location
-    if intersect_l or intersect_r:
+    # if intersecting, raise warning and try to locate intersection location
+    if bound_collision:
         # calculate location of intersection
-        if intersect_l:
-            intersect_pnts = ego_tube.intersection(bound_l_ls)
-        else:
-            intersect_pnts = ego_tube.intersection(bound_r_ls)
+        intersect_pnts = ego_tube.intersection(track_shape.boundary)
 
         # convert intersection points to list
         intersect_pnts_list = []
 
-        if intersect_pnts.geom_type == 'LineString':
+        if intersect_pnts.geom_type == 'LineString' and intersect_pnts.coords:
             intersect_pnts = intersect_pnts.coords.xy
             for i in range(len(intersect_pnts[0])):
                 intersect_pnts_list.append([intersect_pnts[0][i], intersect_pnts[1][i]])
@@ -92,4 +82,4 @@ def check_collision_lanelet(ego_path: np.ndarray,
             log.warning('supmod_static_collision | Collision detected! For example, a collision in vicinity of the po'
                         'int ({:6.2f}, {:6.2f}) detected.'.format(intersect_pnts_list[0][0], intersect_pnts_list[0][1]))
 
-    return not intersect_l and not intersect_r, safety_param
+    return not bound_collision, safety_param

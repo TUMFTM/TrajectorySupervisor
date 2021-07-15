@@ -1,6 +1,7 @@
 import numpy as np
 import configparser
 import trajectory_supervisor
+import shapely.geometry
 
 
 class SupModStaticCollision(object):
@@ -41,6 +42,9 @@ class SupModStaticCollision(object):
         self.__occ_map = None
         self.__bound_l = None
         self.__bound_r = None
+        self.__bound_l_add = None
+        self.__bound_r_add = None
+        self.__track_shape = None
 
         # -- get parameters for the static safety assessment from configuration file -----------------------------------
         self.__plot_occ = safety_param.getboolean('STATIC_COLLISION', 'plot_occupancy')
@@ -69,7 +73,9 @@ class SupModStaticCollision(object):
     def update_map(self,
                    occ_map: dict = None,
                    bound_l: np.ndarray = None,
-                   bound_r: np.ndarray = None) -> None:
+                   bound_r: np.ndarray = None,
+                   bound_l_add: list = None,
+                   bound_r_add: list = None) -> None:
         """
         Update the internal map representation (either occupancy map OR left and right bound).
 
@@ -79,6 +85,10 @@ class SupModStaticCollision(object):
                                 * resolution:     grid resolution in meters
         :param bound_l:     coordinates of the left bound (numpy array with columns x, y)
         :param bound_r:     coordinates of the right bound (numpy array with columns x, y)
+        :param bound_l_add: (optional, beta) list of left boundary coordinates as arrays with each columns [x, y]
+        :param bound_r_add: (optional, beta) list of right boundary coordinates as arrays with each columns [x, y]
+
+        Note: Additional bounds currently only supported for lanelet-collision check.
         """
 
         # check if valid set of parameters was provided, else raise error
@@ -93,6 +103,47 @@ class SupModStaticCollision(object):
         self.__occ_map = occ_map
         self.__bound_l = bound_l
         self.__bound_r = bound_r
+        self.__bound_l_add = bound_l_add
+        self.__bound_r_add = bound_r_add
+
+        # if lanelet configured, calculate new track-shape shapely object
+        if self.__occ_map is None:
+            # -- define main track shapely object --
+            # if closed track
+            if np.hypot(bound_l[0, 0] - bound_l[-1, 0], bound_l[0, 1] - bound_l[-1, 1]) < 35.0:
+                # calculate shape for main right and left bound
+                bound_l_poly = shapely.geometry.Polygon(bound_l)
+                bound_r_poly = shapely.geometry.Polygon(bound_r)
+
+                if bound_l_poly.area > bound_r_poly.area:
+                    track_shape = bound_l_poly.difference(bound_r_poly)
+                else:
+                    track_shape = bound_r_poly.difference(bound_l_poly)
+
+            # if open track
+            else:
+                # calculate track shape extended at start and end
+                ds1 = np.diff(bound_l[:2, :], axis=0)[0]
+                ds2 = np.diff(bound_l[-2:, :], axis=0)[0]
+                ds3 = np.diff(bound_r[:2, :], axis=0)[0]
+                ds4 = np.diff(bound_r[-2:, :], axis=0)[0]
+                bound_outline = np.vstack((bound_l[0, :] - ds1 * 5.0 / np.hypot(ds1[0], ds1[1]),
+                                           bound_l,
+                                           bound_l[-1, :] + ds2 * 5.0 / np.hypot(ds2[0], ds2[1]),
+                                           bound_r[-1, :] + ds4 * 5.0 / np.hypot(ds4[0], ds4[1]),
+                                           np.flipud(bound_r),
+                                           bound_r[0, :] - ds3 * 5.0 / np.hypot(ds3[0], ds3[1])))
+
+                track_shape = shapely.geometry.Polygon(bound_outline)
+
+            # -- add additional track lanes, if present --
+            if bound_l_add is not None and bound_r_add is not None:
+                for bound_l_a, bound_r_a in zip(bound_l_add, bound_r_add):
+                    bound_a_shape = shapely.geometry.Polygon(np.vstack((bound_l_a, np.flipud(bound_r_a))))
+
+                    track_shape = track_shape.union(bound_a_shape)
+
+            self.__track_shape = track_shape
 
         return
 
@@ -129,8 +180,7 @@ class SupModStaticCollision(object):
             safety, safety_parameters_bound_intersect = trajectory_supervisor.supervisor_modules.\
                 supmod_static_collision.src.check_collision_lanelet.check_collision_lanelet(
                     ego_path=ego_data[:, 1:4],
-                    bound_l=self.__bound_l,
-                    bound_r=self.__bound_r,
+                    track_shape=self.__track_shape,
                     col_width=self.__col_width,
                     veh_length=self.__veh_length)
         safety_parameters = {"stat_col_cur": safety,

@@ -15,7 +15,7 @@ import trajectory_supervisor
 REQ_VEH_PARAM = ('veh_width', 'veh_length', 'turn_rad', 'dyn_model_exp', 'drag_coeff', 'm_veh')
 LOG_HEADER = ("time;traj_stamp;traj_perf_ref;traj_perf;traj_emerg_ref;traj_emerg;objects_stamp;objects_ref;"
               "objects;safety_static;safety_dynamic;safety_base")
-MAP_LOG_HEADER = "time;bound_l;bound_r;localgg;ax_max_machines;acc_limit_factor"
+MAP_LOG_HEADER = "time;bound_l;bound_r;localgg;ax_max_machines;acc_limit_factor;bound_l_add;bound_r_add"
 
 
 class Supervisor(object):
@@ -88,6 +88,8 @@ class Supervisor(object):
 
         self.__bound_l = None
         self.__bound_r = None
+        self.__bound_l_add = None
+        self.__bound_r_add = None
         self.__ref_line = None
         self.__norm_vec = None
         self.__tw_left = None
@@ -190,24 +192,34 @@ class Supervisor(object):
                         bound_left: np.ndarray,
                         bound_right: np.ndarray,
                         ax_max_machines: np.ndarray,
-                        localgg: np.ndarray):
+                        localgg: np.ndarray,
+                        bound_left_add: list = None,
+                        bound_right_add: list = None):
         """
         Set map information including performance limits applicable on the given map.
 
         Depending on the enabled modules this triggers an (re)initialization that may take some time. For online update
         of maps, evaluate performance first.
 
-        :param bound_left:      left track boundary coordinates as numpy array with columns [x, y]
-        :param bound_right:     right track boundary coordinates as numpy array with columns [x, y]
+        :param bound_left:      (main) left track boundary coordinates as numpy array with columns [x, y]
+        :param bound_right:     (main) right track boundary coordinates as numpy array with columns [x, y]
         :param ax_max_machines: acceleration profile for the machine of the used vehicles, if multiple types use fastest
                                 the acc. for a given velocity is extracted - provide numpy array with columns [v, a]
         :param localgg:         track specific acceleration limits as numpy array with columns [x, y, s_m, ax, ay]
                                 NOTE: currently only the maximum of ax and ay is used globally (worst case estimate)
+        :param bound_left_add:  (optional, beta) list of left boundary coordinates as arrays with each columns [x, y]
+        :param bound_right_add: (optional, beta) list of right boundary coordinates as arrays with each columns [x, y]
+
+        NOTE: Additional boundaries (bound_xxx_add) must be provided in pairs and overlap the main boundaries. The main
+              boundaries always serve as a reference coordinate system (i.e. for lane-based coordinates). The additional
+              boundaries are experimental/beta and not supported by all SupMods (e.g. rule-based reachable sets).
         """
 
         # receive map and other data
         self.__bound_l = bound_left
         self.__bound_r = bound_right
+        self.__bound_l_add = bound_left_add
+        self.__bound_r_add = bound_right_add
         self.__ax_max_machines = ax_max_machines
         self.__localgg = localgg
 
@@ -237,7 +249,9 @@ class Supervisor(object):
                          + json.dumps(self.__bound_r, default=default) + ";"
                          + json.dumps(self.__localgg, default=default) + ";"
                          + json.dumps(self.__ax_max_machines, default=default) + ";"
-                         + json.dumps(self.__acc_limit_factor, default=default)
+                         + json.dumps(self.__acc_limit_factor, default=default) + ";"
+                         + json.dumps(self.__bound_l_add, default=default) + ";"
+                         + json.dumps(self.__bound_r_add, default=default)
                          )
 
         return True
@@ -323,7 +337,9 @@ class Supervisor(object):
 
         if 'static_collision_check' in self.__mod_dict.keys():
             self.__mod_dict['static_collision_check'].update_map(bound_l=self.__bound_l,
-                                                                 bound_r=self.__bound_r)
+                                                                 bound_r=self.__bound_r,
+                                                                 bound_l_add=self.__bound_l_add,
+                                                                 bound_r_add=self.__bound_r_add)
 
         if 'rule_reach_set' in self.__mod_dict.keys():
             self.__mod_dict['rule_reach_set'].update_map(ref_line=self.__ref_line,
