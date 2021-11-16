@@ -8,6 +8,7 @@ import shapely.geometry
 
 import scenario_testing_tools as stt
 import trajectory_supervisor
+from trajectory_supervisor.helper_funcs.src import path_matching
 
 
 class SupModGuaranteedOccupancyArea(object):
@@ -116,6 +117,11 @@ class SupModGuaranteedOccupancyArea(object):
             # notify user on completion
             logging.getLogger("supervisor_logger").info("Occupation map creation succeeded.")
 
+        # -- initialize Frenet frame -----------------------------------------------------------------------------------
+        self.__ref_line = None
+        self.__s_course = None
+        self.__closed = False
+
         # remove MD5 key, if present
         if 'md5_key' in self.__occupation_maps:
             del self.__occupation_maps['md5_key']
@@ -125,6 +131,30 @@ class SupModGuaranteedOccupancyArea(object):
     # ------------------------------------------------------------------------------------------------------------------
     def __del__(self):
         pass
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # UPDATE MAP -------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+    def update_map(self,
+                   ref_line: np.ndarray) -> None:
+        """
+        Update the internal map representation.
+
+        :param ref_line:            cartesian coordinates of the reference line for the Frenet frame
+
+        """
+        # -- update reference line -------------------------------------------------------------------------------------
+        self.__ref_line = ref_line
+
+        # -- calculate the cumulative distance along the reference line ------------------------------------------------
+        self.__s_course = np.cumsum(np.sqrt(np.sum(np.power(np.diff(self.__ref_line, axis=0), 2), axis=1)))
+        self.__s_course = np.insert(self.__s_course, 0, 0.0)
+
+        # -- update track style (closed or open) -----------------------------------------------------------------------
+        if np.hypot(ref_line[0, 0] - ref_line[-1, 0], ref_line[0, 1] - ref_line[-1, 1]) < 35.0:
+            self.__closed = True
+        else:
+            self.__closed = False
 
     # ------------------------------------------------------------------------------------------------------------------
     # CALC SCORE -------------------------------------------------------------------------------------------------------
@@ -163,50 +193,75 @@ class SupModGuaranteedOccupancyArea(object):
                                                 t_occ=t_obj_occ,
                                                 veh_shape=self.__veh_shape)
 
+        # -- CALC S COORDINATE FOR START AND END OF PLANNING HORIZON ---------------------------------------------------
+        # get s coordinates of ego-trajectory start and end
+        s_traj_ego_start = path_matching.get_s_coord(ref_line=self.__ref_line,
+                                                     pos=ego_traj[0, 1:3],
+                                                     s_array=self.__s_course,
+                                                     closed=self.__closed)[0]
+        s_traj_ego_end = path_matching.get_s_coord(ref_line=self.__ref_line,
+                                                   pos=ego_traj[-1, 1:3],
+                                                   s_array=self.__s_course,
+                                                   closed=self.__closed)[0]
+
         # for all objects (that hold the listed keys)
         for obj_key in objects.keys():
             if ('v_x' and 'Y' and 'X' and 'theta') in objects[obj_key].keys():
-                # -- SET OCCUPATION MAP TO POSITION OF VEHICLE AND ROTATE IT TO HEADING DIRECTION ----------------------
-                obj_occupation_map = get_obj_occupation(occupation_maps=self.__occupation_maps,
-                                                        object_vel=objects[obj_key]['v_x'],
-                                                        object_psi=objects[obj_key]['theta'] + np.pi / 2,  # north = 0.0
-                                                        object_x=objects[obj_key]['X'],
-                                                        object_y=objects[obj_key]['Y'])
+                s_veh = path_matching.get_s_coord(ref_line=self.__ref_line,
+                                                  pos=(objects[obj_key]['X'], objects[obj_key]['Y']),
+                                                  s_array=self.__s_course,
+                                                  closed=self.__closed)[0]
 
-                # since the object occupation is pre-computed, raise warning if assumed vehicle dimensions differ a lot
-                # compared to the actual received ones
-                if objects[obj_key]['form'] != "rectangle":
-                    logging.getLogger("supervisor_logger").warning('supmod_guaranteed_occupation | Found object ('
-                                                                   + obj_key + ') of form "' + objects[obj_key]['form']
-                                                                   + '" but expected "rectangle". Used dims of '
-                                                                     'ego-vehicle instead!')
+                # only objects in range of ego-trajectory (objects behind ego are ignored)
+                if (s_traj_ego_start <= s_veh <= s_traj_ego_end + self.__veh_length) \
+                        or (s_traj_ego_start > s_traj_ego_end) and (
+                        s_veh <= s_traj_ego_end or s_traj_ego_start <= s_veh):
 
-                elif (abs(objects[obj_key]['width'] - self.__veh_width) > 0.1
-                      or abs(objects[obj_key]['length'] - self.__veh_length) > 0.1):
-                    logging.getLogger("supervisor_logger").warning('supmod_guaranteed_occupation | Precomputed '
-                                                                   'occupancy set was calculated for vehicle dimensions'
-                                                                   ' {:.2f}x{:.2f} but obj "{}" has dimensions '
-                                                                   '{:.2f}x{:.2f}! Occupation estimation might be '
-                                                                   'wrong!'.format(self.__veh_length, self.__veh_width,
-                                                                                   obj_key, objects[obj_key]['length'],
-                                                                                   objects[obj_key]['width']))
+                    # -- SET OCCUPATION MAP TO POSITION OF VEHICLE AND ROTATE IT TO HEADING DIRECTION ------------------
+                    obj_occupation_map = get_obj_occupation(occupation_maps=self.__occupation_maps,
+                                                            object_vel=objects[obj_key]['v_x'],
+                                                            object_psi=objects[obj_key]['theta'] + np.pi / 2,  # north 0
+                                                            object_x=objects[obj_key]['X'],
+                                                            object_y=objects[obj_key]['Y'])
 
-                # -- CHECK FOR INTERSECTION BETWEEN TRAJECTORY AND OCCUPATION AREA -------------------------------------
-                collision_tmp, coll_set_ego, coll_set_obj = check_collision(obj_occupation_map=obj_occupation_map,
-                                                                            ego_occupation_map=ego_occupation_map,
-                                                                            obj_key=str(obj_key))
+                    # since the object occupation is pre-computed, raise warning if assumed vehicle dimensions differ a
+                    # lot compared to the actual received ones
+                    if objects[obj_key]['form'] != "rectangle":
+                        logging.getLogger("supervisor_logger").warning('supmod_guaranteed_occupation | Found object ('
+                                                                       + obj_key + ') of form "'
+                                                                       + objects[obj_key]['form']
+                                                                       + '" but expected "rectangle". Used dims of '
+                                                                         'ego-vehicle instead!')
 
-                collision_tracker.append(collision_tmp)
+                    elif (abs(objects[obj_key]['width'] - self.__veh_width) > 0.1
+                          or abs(objects[obj_key]['length'] - self.__veh_length) > 0.1):
+                        logging.getLogger("supervisor_logger").warning('supmod_guaranteed_occupation | Precomputed '
+                                                                       'occupancy set was calculated for vehicle '
+                                                                       'dimensions {:.2f}x{:.2f} but obj "{}" has '
+                                                                       'dimensions {:.2f}x{:.2f}! Occupation estimation'
+                                                                       ' might be '
+                                                                       'wrong!'.format(self.__veh_length,
+                                                                                       self.__veh_width,
+                                                                                       obj_key,
+                                                                                       objects[obj_key]['length'],
+                                                                                       objects[obj_key]['width']))
 
-                # if collision, add collision outlines to parameter dict
-                if collision_tmp:
-                    safety_parameters["gocccolego_" + obj_key] = [coll_set_ego[:, 0], coll_set_ego[:, 1]]
-                    safety_parameters["gocccolobj_" + obj_key] = [coll_set_obj[:, 0], coll_set_obj[:, 1]]
+                    # -- CHECK FOR INTERSECTION BETWEEN TRAJECTORY AND OCCUPATION AREA ---------------------------------
+                    collision_tmp, coll_set_ego, coll_set_obj = check_collision(obj_occupation_map=obj_occupation_map,
+                                                                                ego_occupation_map=ego_occupation_map,
+                                                                                obj_key=str(obj_key))
 
-                # store parameters to dict
-                for t_stamp in obj_occupation_map.keys():
-                    params_key = "gocc_" + obj_key + "_" + str(t_stamp)
-                    safety_parameters[params_key] = obj_occupation_map[t_stamp].transpose().tolist()
+                    collision_tracker.append(collision_tmp)
+
+                    # if collision, add collision outlines to parameter dict
+                    if collision_tmp:
+                        safety_parameters["gocccolego_" + obj_key] = [coll_set_ego[:, 0], coll_set_ego[:, 1]]
+                        safety_parameters["gocccolobj_" + obj_key] = [coll_set_obj[:, 0], coll_set_obj[:, 1]]
+
+                    # store parameters to dict
+                    for t_stamp in obj_occupation_map.keys():
+                        params_key = "gocc_" + obj_key + "_" + str(t_stamp)
+                        safety_parameters[params_key] = obj_occupation_map[t_stamp].transpose().tolist()
 
         # -- MERGE COLLISION SCORES ------------------------------------------------------------------------------------
         # only safe, if not one single collision is detected

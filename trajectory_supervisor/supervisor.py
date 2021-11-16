@@ -341,6 +341,9 @@ class Supervisor(object):
                                                                  bound_l_add=self.__bound_l_add,
                                                                  bound_r_add=self.__bound_r_add)
 
+        if 'dynamic_guar_occupation' in self.__mod_dict.keys():
+            self.__mod_dict['dynamic_guar_occupation']. update_map(ref_line=self.__ref_line)
+
         if 'rule_reach_set' in self.__mod_dict.keys():
             self.__mod_dict['rule_reach_set'].update_map(ref_line=self.__ref_line,
                                                          norm_vec=self.__norm_vec,

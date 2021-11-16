@@ -260,7 +260,7 @@ class SupModReachSets(object):
                                               closed=self.__closed)[0]
 
             # only objects in range of ego-trajectory (objects behind ego are ignored)
-            if (s_traj_ego_start <= s_veh <= s_traj_ego_end) \
+            if (s_traj_ego_start <= s_veh <= s_traj_ego_end + self.__veh_length) \
                     or (s_traj_ego_start > s_traj_ego_end) and (s_veh <= s_traj_ego_end or s_traj_ego_start <= s_veh):
 
                 # -- CALCULATE REACHABLE SET FOR OBJECT ----------------------------------------------------------------

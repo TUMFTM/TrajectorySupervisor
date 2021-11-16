@@ -92,10 +92,14 @@ def get_s_coord(ref_line: np.ndarray,
 
         # get point perpendicular on the line between the two closest points
         # https://stackoverflow.com/questions/10301001/perpendicular-on-a-line-segment-from-a-given-point
-        t = ((pos[0] - a_pos[0]) * (b_pos[0] - a_pos[0]) + (pos[1] - a_pos[1]) * (b_pos[1] - a_pos[1])) / \
-            (np.power(b_pos[0] - a_pos[0], 2) + np.power(b_pos[1] - a_pos[1], 2))
-        s_pos = [a_pos[0] + t * (b_pos[0] - a_pos[0]), a_pos[1] + t * (b_pos[1] - a_pos[1])]
-        ds = np.sqrt(np.power(a_pos[0] - s_pos[0], 2) + np.power(a_pos[1] - s_pos[1], 2))
+        if sorted(a_pos) != sorted(b_pos):
+            t = ((pos[0] - a_pos[0]) * (b_pos[0] - a_pos[0]) + (pos[1] - a_pos[1]) * (b_pos[1] - a_pos[1])) / \
+                (np.power(b_pos[0] - a_pos[0], 2) + np.power(b_pos[1] - a_pos[1], 2))
+            s_pos = [a_pos[0] + t * (b_pos[0] - a_pos[0]), a_pos[1] + t * (b_pos[1] - a_pos[1])]
+            ds = np.sqrt(np.power(a_pos[0] - s_pos[0], 2) + np.power(a_pos[1] - s_pos[1], 2))
+        else:
+            # if start and end-pose are same, avoid division by zero
+            ds = 0.0
 
         # x_inter = np.linspace(a_pos[0], b_pos[0], 100)
         # y_inter = np.linspace(a_pos[1], b_pos[1], 100)

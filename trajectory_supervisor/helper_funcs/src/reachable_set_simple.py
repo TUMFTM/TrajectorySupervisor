@@ -214,7 +214,7 @@ def cv_model(vel: float,
         * **cvehicle** -    predicted centers of the vehicle
 
     """
-    # Calculate cvehicle
+    # calculate cvehicle
     cvehicle = vel * np.arange(0.0, t_max + dt / 2, dt)
     cvehicle = np.transpose(cvehicle)
 
@@ -301,7 +301,7 @@ def calc_vertices(pos: np.ndarray,
     :param cvehicle:         center positions of vehicle at future time-stamps (along longitudinal axis)
     :param bx_bound:         front extension of overapprox. reach set (based on Althoff)
     :param globalangle:      angle [in rad]
-    :param racc:             radius [in m]
+    :param racc:             radius of reachable area at certain points in time [in m]
     :param dt:               temporal increment between pose predictions [in s]
     :param veh_length:       (optional) vehicle length [in m], if not provided, reach-set for point-mass is calculated
     :param veh_width:        (optional) vehicle width [in m], if not provided, reach-set for point-mass is calculated
@@ -319,7 +319,7 @@ def calc_vertices(pos: np.ndarray,
         27.01.2020
 
     """
-    # Initialize empty polygon dict
+    # initialize empty polygon dict
     polypred = dict()
 
     # init vehicle dimension array
@@ -330,6 +330,8 @@ def calc_vertices(pos: np.ndarray,
                         [-veh_length, -veh_width],
                         [-veh_length, -veh_width]]) / 2.0
 
+    prev_front = -99.0
+    prev_r_t = 0.0
     for j in range(cvehicle.shape[0]):
         # retrieve relevant parameters
         if j > 0:
@@ -350,6 +352,17 @@ def calc_vertices(pos: np.ndarray,
                          [c_t1 + r_t1, -r_t1],  # q4
                          [b_t, -r_t1],          # q5
                          [c_t - r_t, -r_t]])    # q6
+
+        # prevent from driving backwards when reaching v=0
+        if poly[0, 0] < prev_front:
+            poly[0, 0] = prev_front
+            poly[0, 1] = prev_r_t
+            poly[-1, 0] = prev_front
+            poly[-1, 1] = - prev_r_t
+
+        else:
+            prev_front = poly[0, 0]
+            prev_r_t = poly[0, 1]
 
         # add vehicle dimensions
         poly = poly + veh_dim

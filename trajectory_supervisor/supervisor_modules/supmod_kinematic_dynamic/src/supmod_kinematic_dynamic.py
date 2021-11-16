@@ -95,7 +95,8 @@ class SupModKinematicDynamic(object):
 
         # check if requested acceleration is below machine limit
         if self.__enable_motor_limits:
-            ax_cur = np.copy(ego_data[:, 6])
+            # get true ax for regions with positive velocity (reversing and standstill may be handled differently)
+            ax_cur = np.where(ego_data[:, 5] > 0.01, np.copy(ego_data[:, 6]), 0.0)
             ax_cur += np.power(ego_data[:, 5], 2) * self.__drag_coeff / self.__m_veh
 
             ax_max_lim = np.interp(ego_data[:, 5], self.__ax_max_machines[:, 0], self.__ax_max_machines[:, 1])

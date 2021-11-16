@@ -80,7 +80,9 @@ class PlotHandler(object):
         self.__time_rel_ax = self.__fig.gca()
         self.__time_rel_ax.set_title("Time step analysis")
         self.__time_rel_ax.set_xlabel('$t$ in s')
-        self.__time_rel_ax.set_ylabel('$v_x$ in m/s')
+        self.__time_rel_ax.set_ylabel(r'$v_x$ in m/s'
+                                      '\n'
+                                      r'$a_x+30$ in m/s$^2$')
         self.__time_rel_ax.set_xlim([0.0, 5.0])
         self.__time_rel_ax.set_ylim([0.0, 60.0])
         self.__time_rel_ax.grid()
@@ -89,14 +91,16 @@ class PlotHandler(object):
         self.__time_rel_ax.minorticks_on()
 
         self.__time_rel_ax2 = self.__time_rel_ax.twinx()
-        self.__time_rel_ax2.set_ylabel(r'$\kappa$ in 1/m\n'
+        self.__time_rel_ax2.set_ylabel(r'$\kappa$ in 1/m'
+                                       '\n'
                                        r'$\psi$ in rad/(10$\pi$)')
         self.__time_rel_ax2.set_ylim([-0.1, 0.1])
 
-        red_patch = ptch.Patch(color=TUM_colors['TUM_orange'], label='$v_x$')
+        red_patch = ptch.Patch(color=TUM_colors['TUM_orange'], label=r'$v_x$')
+        grey_patch = ptch.Patch(color=TUM_colors['TUM_grey_dark'], label=r'$a_x$')
         blue_patch = ptch.Patch(color=TUM_colors['TUM_blue'], label=r'$\kappa$')
         green_patch = ptch.Patch(color=TUM_colors['TUM_green'], label=r'$\psi$')
-        self.__time_rel_ax2.legend(handles=[red_patch, blue_patch, green_patch])
+        self.__time_rel_ax2.legend(handles=[red_patch, grey_patch, blue_patch, green_patch])
 
         # -- MAIN PLOT (MAP OVERVIEW) ----------------------------------------------------------------------------------
         plt.subplot(gs[2])
@@ -634,8 +638,9 @@ class PlotHandler(object):
         """
 
         # color masks
-        color_masks = [TUM_colors['TUM_orange'], TUM_colors['TUM_blue'], TUM_colors['TUM_green']]
-        group_axes = [self.__time_rel_ax, self.__time_rel_ax2, self.__time_rel_ax2]
+        color_masks = [TUM_colors['TUM_orange'], TUM_colors['TUM_grey_dark'],
+                       TUM_colors['TUM_blue'], TUM_colors['TUM_green']]
+        group_axes = [self.__time_rel_ax, self.__time_rel_ax, self.__time_rel_ax2, self.__time_rel_ax2]
 
         # delete existing time courses with stored handle
         if self.__time_rel_line_handle is not None:

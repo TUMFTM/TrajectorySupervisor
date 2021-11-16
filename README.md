@@ -20,7 +20,7 @@ safety-concept. See the license for more details.
 ### Documentation
 The documentation of the project can be found [here](https://trajectorysupervisor.readthedocs.io).
 
-### Acknowledgements
+### People Involved
 
 ##### Core Developer
 * [Tim Stahl](mailto:tim.stahl@tum.de)

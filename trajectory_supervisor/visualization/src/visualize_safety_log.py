@@ -258,6 +258,8 @@ class DebugHandler(object):
             # NOTE: If multiple lines to be plotted, simply add further entries to lists
             vel_info_list = [np.column_stack((t_coord[traj_order[0]], ego_traj[traj_order[0]]['data_ref'][:, 5])),
                              np.column_stack((t_coord[traj_order[1]], ego_traj[traj_order[1]]['data_ref'][:, 5]))]
+            ax_info_list = [np.column_stack((t_coord[traj_order[0]], ego_traj[traj_order[0]]['data_ref'][:, 6] + 30.0)),
+                            np.column_stack((t_coord[traj_order[1]], ego_traj[traj_order[1]]['data_ref'][:, 6] + 30.0))]
             kappa_info_list = [np.column_stack((t_coord[traj_order[0]], ego_traj[traj_order[0]]['data_ref'][:, 4])),
                                np.column_stack((t_coord[traj_order[1]], ego_traj[traj_order[1]]['data_ref'][:, 4]))]
             psi_info_list = [np.column_stack((t_coord[traj_order[0]],
@@ -266,7 +268,8 @@ class DebugHandler(object):
                                               ego_traj[traj_order[1]]['data_ref'][:, 3] / (10 * np.pi)))]
 
             # plot course of temporal information (= non-path)
-            _plot_handler.plot_time_rel_line(line_coords_list=[vel_info_list, kappa_info_list, psi_info_list])
+            _plot_handler.plot_time_rel_line(line_coords_list=[vel_info_list, ax_info_list, kappa_info_list,
+                                                               psi_info_list])
 
             # update reference ego vehicle pose
             _plot_handler.plot_vehicle(pos=[ego_traj[_traj_type]['data_ref'][0, 1:3]],

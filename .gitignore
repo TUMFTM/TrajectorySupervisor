@@ -63,3 +63,5 @@ params/guar_occ_area.json
 dist/
 
 trajectory_supervisor.egg-info/
+
+CI/evaluation_scenarios/logged_runs/
